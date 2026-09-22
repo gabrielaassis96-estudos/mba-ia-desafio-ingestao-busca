@@ -1,29 +1,32 @@
-PROMPT_TEMPLATE = """
-CONTEXTO:
-{contexto}
+import os
 
-REGRAS:
-- Responda somente com base no CONTEXTO.
-- Se a informação não estiver explicitamente no CONTEXTO, responda:
-  "Não tenho informações necessárias para responder sua pergunta."
-- Nunca invente ou use conhecimento externo.
-- Nunca produza opiniões ou interpretações além do que está escrito.
+from dotenv import load_dotenv
+from langchain_openai import OpenAIEmbeddings
+from langchain_postgres import PGVector
 
-EXEMPLOS DE PERGUNTAS FORA DO CONTEXTO:
-Pergunta: "Qual é a capital da França?"
-Resposta: "Não tenho informações necessárias para responder sua pergunta."
 
-Pergunta: "Quantos clientes temos em 2024?"
-Resposta: "Não tenho informações necessárias para responder sua pergunta."
+load_dotenv()
 
-Pergunta: "Você acha isso bom ou ruim?"
-Resposta: "Não tenho informações necessárias para responder sua pergunta."
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-PERGUNTA DO USUÁRIO:
-{pergunta}
+COLLECTION_NAME = "documentos"
 
-RESPONDA A "PERGUNTA DO USUÁRIO"
-"""
 
-def search_prompt(question=None):
-    pass
+def search(query: str, k: int = 10):
+    embeddings = OpenAIEmbeddings(
+        model="text-embedding-3-small"
+    )
+
+    vector_store = PGVector(
+        embeddings=embeddings,
+        collection_name=COLLECTION_NAME,
+        connection=DATABASE_URL,
+        use_jsonb=True,
+    )
+
+    results = vector_store.similarity_search_with_score(
+        query,
+        k=k,
+    )
+
+    return results
